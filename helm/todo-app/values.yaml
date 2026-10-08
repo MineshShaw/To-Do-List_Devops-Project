@@ -1,0 +1,29 @@
+replicaCount: 2
+
+backend:
+  image:
+    repository: ghcr.io/your-repo/backend
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8000
+
+frontend:
+  image:
+    repository: ghcr.io/your-repo/frontend
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations: {}
+  hosts:
+    - host: todo-app.local
+      paths:
+        - path: /
+          pathType: Prefix
