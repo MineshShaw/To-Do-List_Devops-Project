@@ -18,6 +18,7 @@ RUN pip install --no-cache-dir --upgrade \
     pip install --no-cache-dir --upgrade \
     "msgpack>=1.2.1" \
     "urllib3>=2.8.0" && \
+    pip uninstall --yes pip setuptools wheel && \
     rm -rf /usr/local/lib/python3.11/ensurepip/_bundled/
 
 COPY --chown=appuser:appuser . .
