@@ -5,3 +5,4 @@ psycopg2-binary
 alembic
 pytest
 httpx
+psycopg[binary]

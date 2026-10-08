@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-  db:
+  postgres:
     image: postgres:15-alpine
     environment:
       POSTGRES_USER: postgres
@@ -19,24 +19,20 @@ services:
 
   backend:
     build: ./backend
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    volumes:
-      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/todo_db
-    depends_on:
-      db:
-        condition: service_healthy
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/todo_db
 
   frontend:
-    image: python:3.11-slim
-    command: python -m http.server 3000 --directory /app
-    volumes:
-      - ./frontend:/app
+    build: ./frontend
     ports:
-      - "3000:3000"
+      - "3000:80"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
