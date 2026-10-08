@@ -1,3 +1,7 @@
+import os
+
+os.environ.setdefault("TASK_API_KEY", "test-api-key")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

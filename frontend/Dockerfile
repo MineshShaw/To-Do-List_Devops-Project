@@ -1,5 +1,5 @@
 # Stage 1: Build stage
-FROM node:18-alpine AS build
+FROM node:22.23.3-alpine@sha256:df221db836e1754089190208cee7eeda94f233197056426eda74a43ab1abeac2 AS build
 RUN apk update && apk upgrade
 
 WORKDIR /app
@@ -10,7 +10,7 @@ COPY index.html app.js style.css ./
 RUN npm run build
 
 # Stage 2: Production stage
-FROM nginx:latest AS production
+FROM nginx:1.31.6-alpine@sha256:0dd364ba7e10242f07755449e3a3d0e35f9efd987952737b90def6709ab0c5ce AS production
 
 # Create non-root user
 RUN addgroup -g 1001 -S appuser && \

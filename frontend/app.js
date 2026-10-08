@@ -1,8 +1,10 @@
 const API_URL = 'http://localhost:8000';
+const API_KEY = localStorage.getItem('todoApiKey') || '';
+const AUTH_HEADERS = { 'X-API-Key': API_KEY };
 
 async function fetchTasks() {
     try {
-        const response = await fetch(`${API_URL}/tasks`);
+        const response = await fetch(`${API_URL}/tasks`, { headers: AUTH_HEADERS });
         const tasks = await response.json();
         displayTasks(tasks);
     } catch (error) {
@@ -14,9 +16,7 @@ async function createTask(title) {
     try {
         await fetch(`${API_URL}/tasks`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { ...AUTH_HEADERS, 'Content-Type': 'application/json' },
             body: JSON.stringify({ title })
         });
         fetchTasks();
@@ -29,9 +29,7 @@ async function updateTask(id, completed) {
     try {
         await fetch(`${API_URL}/tasks/${id}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { ...AUTH_HEADERS, 'Content-Type': 'application/json' },
             body: JSON.stringify({ completed })
         });
         fetchTasks();
@@ -43,7 +41,8 @@ async function updateTask(id, completed) {
 async function deleteTask(id) {
     try {
         await fetch(`${API_URL}/tasks/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: AUTH_HEADERS
         });
         fetchTasks();
     } catch (error) {
