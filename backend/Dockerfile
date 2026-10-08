@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Install dependencies
 COPY requirements.txt .
+RUN pip install --upgrade pip setuptools wheel "jaraco.context>=6.1.0"
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend source code
