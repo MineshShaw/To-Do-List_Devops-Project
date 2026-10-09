@@ -24,6 +24,7 @@ def test_create_task(client: TestClient):
     assert data["completed"] == False
     assert "id" in data
 
+
 def test_get_tasks(client: TestClient):
     # Create a task first
     client.post("/tasks", json={"title": "Test Task"}, headers=AUTH_HEADERS)
@@ -32,6 +33,7 @@ def test_get_tasks(client: TestClient):
     data = response.json()
     assert len(data) == 1
     assert data[0]["title"] == "Test Task"
+
 
 def test_update_task(client: TestClient):
     # Create a task first
@@ -47,6 +49,7 @@ def test_update_task(client: TestClient):
     data = response.json()
     assert data["completed"] == True
 
+
 def test_delete_task(client: TestClient):
     # Create a task first
     create_response = client.post(
@@ -60,3 +63,30 @@ def test_delete_task(client: TestClient):
     # Verify it's deleted
     get_response = client.get("/tasks", headers=AUTH_HEADERS)
     assert len(get_response.json()) == 0
+
+
+def test_get_task_not_found(client: TestClient):
+    response = client.get("/tasks/999", headers=AUTH_HEADERS)
+    assert response.status_code == 404
+
+
+def test_update_task_not_found(client: TestClient):
+    response = client.put(
+        "/tasks/999", json={"completed": True}, headers=AUTH_HEADERS
+    )
+    assert response.status_code == 404
+
+
+def test_delete_task_not_found(client: TestClient):
+    response = client.delete("/tasks/999", headers=AUTH_HEADERS)
+    assert response.status_code == 404
+
+
+def test_create_task_missing_title(client: TestClient):
+    response = client.post("/tasks", json={}, headers=AUTH_HEADERS)
+    assert response.status_code == 422
+
+
+def test_create_task_invalid_title_type(client: TestClient):
+    response = client.post("/tasks", json={"title": 123}, headers=AUTH_HEADERS)
+    assert response.status_code == 422
