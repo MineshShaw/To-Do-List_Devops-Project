@@ -11,6 +11,9 @@ RUN npm run build
 # Stage 2: Production stage
 FROM nginx:alpine AS production
 
+# Apply the latest security updates to the runtime image.
+RUN apk upgrade --no-cache
+
 # Create non-root user
 RUN addgroup -g 1001 -S appuser && \
     adduser -S appuser -u 1001 -G appuser

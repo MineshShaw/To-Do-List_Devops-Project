@@ -3,7 +3,8 @@ FROM python:3.11-alpine
 WORKDIR /app
 
 # Install system dependencies needed for psycopg2-binary and build
-RUN apk add --no-cache --virtual .build-deps gcc musl-dev postgresql-dev && \
+RUN apk upgrade --no-cache && \
+    apk add --no-cache --virtual .build-deps gcc musl-dev postgresql-dev && \
     apk add --no-cache libpq
 
 # Install dependencies
