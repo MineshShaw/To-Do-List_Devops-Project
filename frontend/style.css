@@ -22,6 +22,16 @@ h1 {
     color: #2c3e50;
 }
 
+.status-message {
+    min-height: 24px;
+    margin-bottom: 12px;
+    color: #287a3d;
+}
+
+.status-message.error {
+    color: #c0392b;
+}
+
 .task-form {
     display: flex;
     gap: 10px;

@@ -1,77 +1,84 @@
-const API_URL = window.location.origin + '/api';
+const API_URL = window.location.port === '3000'
+    ? 'http://localhost:8000'
+    : `${window.location.origin}/api`;
+
+const statusMessage = document.getElementById('statusMessage');
+
+function setStatus(message, isError = false) {
+    statusMessage.textContent = message;
+    statusMessage.classList.toggle('error', isError);
+}
+
+async function request(path, options = {}) {
+    const response = await fetch(`${API_URL}${path}`, options);
+    let payload = null;
+    try {
+        payload = await response.json();
+    } catch {
+        payload = null;
+    }
+    if (!response.ok) {
+        const detail = payload?.detail || `Request failed (${response.status})`;
+        throw new Error(detail);
+    }
+    return payload;
+}
 
 async function fetchTasks() {
     try {
-        const storedKey = localStorage.getItem('todoApiKey');
-        const apiKey = storedKey || '';
-        const response = await fetch(`${API_URL}/tasks`, {
-            headers: { 'X-API-Key': apiKey }
-        });
-        const tasks = await response.json();
+        const tasks = await request('/tasks');
         displayTasks(tasks);
+        setStatus('');
     } catch (error) {
-        console.error('Error fetching tasks:', error);
+        displayTasks([]);
+        setStatus(`Could not load tasks: ${error.message}`, true);
     }
 }
 
 async function createTask(title) {
     try {
-        const storedKey = localStorage.getItem('todoApiKey');
-        const apiKey = storedKey || '';
-        await fetch(`${API_URL}/tasks`, {
+        await request('/tasks', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': apiKey
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title })
         });
-        fetchTasks();
+        setStatus('Task saved.');
+        await fetchTasks();
     } catch (error) {
-        console.error('Error creating task:', error);
+        setStatus(`Could not save task: ${error.message}`, true);
     }
 }
 
 async function updateTask(id, completed) {
     try {
-        const storedKey = localStorage.getItem('todoApiKey');
-        const apiKey = storedKey || '';
-        await fetch(`${API_URL}/tasks/${id}`, {
+        await request(`/tasks/${id}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': apiKey
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ completed })
         });
-        fetchTasks();
+        await fetchTasks();
     } catch (error) {
-        console.error('Error updating task:', error);
+        setStatus(`Could not update task: ${error.message}`, true);
     }
 }
 
 async function deleteTask(id) {
     try {
-        const storedKey = localStorage.getItem('todoApiKey');
-        const apiKey = storedKey || '';
-        await fetch(`${API_URL}/tasks/${id}`, {
-            method: 'DELETE',
-            headers: { 'X-API-Key': apiKey }
-        });
-        fetchTasks();
+        await request(`/tasks/${id}`, { method: 'DELETE' });
+        await fetchTasks();
     } catch (error) {
-        console.error('Error deleting task:', error);
+        setStatus(`Could not delete task: ${error.message}`, true);
     }
 }
 
 function displayTasks(tasks) {
     const taskList = document.getElementById('taskList');
     taskList.innerHTML = '';
-    
+
     tasks.forEach(task => {
         const li = document.createElement('li');
         li.className = `task-item ${task.completed ? 'completed' : ''}`;
-        
+
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.className = 'task-checkbox';
@@ -79,38 +86,32 @@ function displayTasks(tasks) {
         checkbox.addEventListener('change', () => {
             updateTask(task.id, checkbox.checked);
         });
-        
+
         const titleSpan = document.createElement('span');
         titleSpan.className = 'task-title';
         titleSpan.textContent = task.title;
-        
+
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'delete-btn';
         deleteBtn.textContent = 'Delete';
-        deleteBtn.addEventListener('click', () => {
-            deleteTask(task.id);
-        });
-        
-        li.appendChild(checkbox);
-        li.appendChild(titleSpan);
-        li.appendChild(deleteBtn);
+        deleteBtn.addEventListener('click', () => deleteTask(task.id));
+
+        li.append(checkbox, titleSpan, deleteBtn);
         taskList.appendChild(li);
     });
 }
 
 function init() {
-    const taskForm = document.getElementById('taskForm');
-    const taskTitle = document.getElementById('taskTitle');
-    
-    taskForm.addEventListener('submit', (e) => {
-        e.preventDefault();
+    document.getElementById('taskForm').addEventListener('submit', event => {
+        event.preventDefault();
+        const taskTitle = document.getElementById('taskTitle');
         const title = taskTitle.value.trim();
         if (title) {
             createTask(title);
             taskTitle.value = '';
         }
     });
-    
+
     fetchTasks();
 }
 

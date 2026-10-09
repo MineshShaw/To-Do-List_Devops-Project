@@ -9,9 +9,8 @@ backend:
     port: 80
     targetPort: 8000
   env:
-    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/todo_db"
+    DATABASE_URL: "postgresql+psycopg2://postgres:postgres@postgres:5432/todo_db"
     CORS_ORIGINS: "http://todo-app.local"
-  secretName: todo-app-backend-secret
 
 frontend:
   image:
@@ -20,7 +19,7 @@ frontend:
   service:
     type: ClusterIP
     port: 80
-    targetPort: 80
+    targetPort: 8080
 
 ingress:
   enabled: true

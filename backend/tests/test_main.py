@@ -1,34 +1,30 @@
 from fastapi.testclient import TestClient
 
+
 def test_health(client: TestClient):
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
-def test_tasks_require_api_key(client: TestClient):
+def test_tasks_allow_direct_access(client: TestClient):
     response = client.get("/tasks")
-    assert response.status_code == 401
-
-
-AUTH_HEADERS = {"X-API-Key": "test-api-key"}
+    assert response.status_code == 200
+    assert response.json() == []
 
 
 def test_create_task(client: TestClient):
-    response = client.post(
-        "/tasks", json={"title": "Test Task"}, headers=AUTH_HEADERS
-    )
+    response = client.post("/tasks", json={"title": "Test Task"})
     assert response.status_code == 200
     data = response.json()
     assert data["title"] == "Test Task"
-    assert data["completed"] == False
+    assert data["completed"] is False
     assert "id" in data
 
 
 def test_get_tasks(client: TestClient):
-    # Create a task first
-    client.post("/tasks", json={"title": "Test Task"}, headers=AUTH_HEADERS)
-    response = client.get("/tasks", headers=AUTH_HEADERS)
+    client.post("/tasks", json={"title": "Test Task"})
+    response = client.get("/tasks")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -36,57 +32,48 @@ def test_get_tasks(client: TestClient):
 
 
 def test_update_task(client: TestClient):
-    # Create a task first
-    create_response = client.post(
-        "/tasks", json={"title": "Test Task"}, headers=AUTH_HEADERS
-    )
+    create_response = client.post("/tasks", json={"title": "Test Task"})
     task_id = create_response.json()["id"]
-    # Update the task
-    response = client.put(
-        f"/tasks/{task_id}", json={"completed": True}, headers=AUTH_HEADERS
-    )
+    response = client.put(f"/tasks/{task_id}", json={"completed": True})
     assert response.status_code == 200
-    data = response.json()
-    assert data["completed"] == True
+    assert response.json()["completed"] is True
 
 
 def test_delete_task(client: TestClient):
-    # Create a task first
-    create_response = client.post(
-        "/tasks", json={"title": "Test Task"}, headers=AUTH_HEADERS
-    )
+    create_response = client.post("/tasks", json={"title": "Test Task"})
     task_id = create_response.json()["id"]
-    # Delete the task
-    response = client.delete(f"/tasks/{task_id}", headers=AUTH_HEADERS)
+    response = client.delete(f"/tasks/{task_id}")
     assert response.status_code == 200
     assert response.json() == {"message": "Task deleted successfully"}
-    # Verify it's deleted
-    get_response = client.get("/tasks", headers=AUTH_HEADERS)
-    assert len(get_response.json()) == 0
+    assert client.get("/tasks").json() == []
 
 
 def test_get_task_not_found(client: TestClient):
-    response = client.get("/tasks/999", headers=AUTH_HEADERS)
-    assert response.status_code == 404
+    assert client.get("/tasks/999").status_code == 404
 
 
 def test_update_task_not_found(client: TestClient):
-    response = client.put(
-        "/tasks/999", json={"completed": True}, headers=AUTH_HEADERS
-    )
+    response = client.put("/tasks/999", json={"completed": True})
     assert response.status_code == 404
 
 
 def test_delete_task_not_found(client: TestClient):
-    response = client.delete("/tasks/999", headers=AUTH_HEADERS)
-    assert response.status_code == 404
+    assert client.delete("/tasks/999").status_code == 404
 
 
 def test_create_task_missing_title(client: TestClient):
-    response = client.post("/tasks", json={}, headers=AUTH_HEADERS)
-    assert response.status_code == 422
+    assert client.post("/tasks", json={}).status_code == 422
 
 
 def test_create_task_invalid_title_type(client: TestClient):
-    response = client.post("/tasks", json={"title": 123}, headers=AUTH_HEADERS)
+    assert client.post("/tasks", json={"title": 123}).status_code == 422
+
+
+def test_create_task_empty_title(client: TestClient):
+    assert client.post("/tasks", json={"title": "   "}).status_code == 422
+
+
+def test_update_task_empty_title(client: TestClient):
+    task_id = client.post("/tasks", json={"title": "Test Task"}).json()["id"]
+    response = client.put(f"/tasks/{task_id}", json={"title": ""})
     assert response.status_code == 422

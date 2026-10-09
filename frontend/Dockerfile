@@ -20,12 +20,14 @@ RUN addgroup -g 1001 -S appuser && \
 
 # Copy built files to nginx html directory
 COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # Change ownership of nginx directories to non-root user
 RUN chown -R appuser:appuser /usr/share/nginx/html && \
     chown -R appuser:appuser /var/cache/nginx && \
     chown -R appuser:appuser /var/log/nginx && \
-    chown -R appuser:appuser /etc/nginx/conf.d
+    chown -R appuser:appuser /etc/nginx/conf.d && \
+    chown appuser:appuser /etc/nginx/nginx.conf
 
 # Make nginx pid file writable
 RUN touch /var/run/nginx.pid && \
@@ -34,6 +36,6 @@ RUN touch /var/run/nginx.pid && \
 # Switch to non-root user
 USER appuser
 
-EXPOSE 80
+EXPOSE 8080
 
 CMD ["nginx", "-g", "daemon off;"]

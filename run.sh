@@ -8,7 +8,7 @@ read -p "Press Enter to continue..."
 
 echo "=== Running pytest -v ==="
 cd backend
-PYTHONPATH=$PWD DATABASE_URL=sqlite:///:memory: TASK_API_KEY=test-api-key python -m pytest -v
+PYTHONPATH=$PWD DATABASE_URL=sqlite:///:memory: python -m pytest -v
 cd ..
 read -p "Press Enter to continue..."
 

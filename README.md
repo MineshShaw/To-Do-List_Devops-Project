@@ -34,7 +34,11 @@ docker compose up --build
 This will start the following services:
 - **PostgreSQL** database on port `5432`
 - **Backend** FastAPI application on port `8000`
-- **Frontend** served on port `3000` via Python HTTP server
+- **Frontend** served on port `3000` via nginx
+
+Open `http://localhost:3000` and add tasks directly. In Compose, the browser
+calls the backend at `http://localhost:8000`; the backend API is also available
+there directly. Tasks are written to the PostgreSQL `postgres_data` volume.
 
 The frontend can be accessed at `http://localhost:3000`, and the backend API is available at `http://localhost:8000`.
 
