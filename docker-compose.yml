@@ -1,14 +1,18 @@
+version: "3.8"
+
 services:
   postgres:
-    image: postgres:15.19-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
+    image: postgres:15-alpine
     environment:
-      POSTGRES_USER: todo_app
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: todo_db
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U todo_app -d todo_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,9 +25,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+psycopg2://todo_app:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/todo_db
-      TASK_API_KEY: ${TASK_API_KEY:?TASK_API_KEY must be set}
-      CORS_ORIGINS: http://localhost:3000
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/todo_db
+      - TASK_API_KEY=dev-secret-key
+      - CORS_ORIGINS=http://localhost:3000
 
   frontend:
     build: ./frontend

@@ -5,8 +5,9 @@ metadata:
   name: {{ .Release.Name }}-ingress
   labels:
     release: {{ .Release.Name }}
-  {{- with .Values.ingress.annotations }}
   annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
@@ -18,9 +19,8 @@ spec:
     - host: {{ .host | quote }}
       http:
         paths:
-          {{- range .paths }}
-          - path: /api
-            pathType: Prefix
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: {{ $.Release.Name }}-backend-service
@@ -33,6 +33,5 @@ spec:
                 name: {{ $.Release.Name }}-frontend-service
                 port:
                   number: {{ $.Values.frontend.service.port }}
-          {{- end }}
     {{- end }}
 {{- end }}

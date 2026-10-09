@@ -1,10 +1,12 @@
-const API_URL = 'http://localhost:8000';
-const API_KEY = localStorage.getItem('todoApiKey') || '';
-const AUTH_HEADERS = { 'X-API-Key': API_KEY };
+const API_URL = window.location.origin + '/api';
 
 async function fetchTasks() {
     try {
-        const response = await fetch(`${API_URL}/tasks`, { headers: AUTH_HEADERS });
+        const storedKey = localStorage.getItem('todoApiKey');
+        const apiKey = storedKey || '';
+        const response = await fetch(`${API_URL}/tasks`, {
+            headers: { 'X-API-Key': apiKey }
+        });
         const tasks = await response.json();
         displayTasks(tasks);
     } catch (error) {
@@ -14,9 +16,14 @@ async function fetchTasks() {
 
 async function createTask(title) {
     try {
+        const storedKey = localStorage.getItem('todoApiKey');
+        const apiKey = storedKey || '';
         await fetch(`${API_URL}/tasks`, {
             method: 'POST',
-            headers: { ...AUTH_HEADERS, 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': apiKey
+            },
             body: JSON.stringify({ title })
         });
         fetchTasks();
@@ -27,9 +34,14 @@ async function createTask(title) {
 
 async function updateTask(id, completed) {
     try {
+        const storedKey = localStorage.getItem('todoApiKey');
+        const apiKey = storedKey || '';
         await fetch(`${API_URL}/tasks/${id}`, {
             method: 'PUT',
-            headers: { ...AUTH_HEADERS, 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': apiKey
+            },
             body: JSON.stringify({ completed })
         });
         fetchTasks();
@@ -40,9 +52,11 @@ async function updateTask(id, completed) {
 
 async function deleteTask(id) {
     try {
+        const storedKey = localStorage.getItem('todoApiKey');
+        const apiKey = storedKey || '';
         await fetch(`${API_URL}/tasks/${id}`, {
             method: 'DELETE',
-            headers: AUTH_HEADERS
+            headers: { 'X-API-Key': apiKey }
         });
         fetchTasks();
     } catch (error) {
