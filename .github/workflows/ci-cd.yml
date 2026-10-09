@@ -10,18 +10,18 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Install backend dependencies
         run: |
           cd backend
-          pip install --upgrade pip==26.2.1
           pip install -r requirements.txt
+          pip install psycopg2-binary 2>/dev/null || true
 
       - name: Run tests
         run: |
@@ -31,78 +31,61 @@ jobs:
   build-backend:
     needs: test-backend
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@v4
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-     
-      - name: Set lowercase repository name
-        run: |
-          echo "REPO_LC=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build backend Docker image
         run: |
-          docker build -t ghcr.io/${{ env.REPO_LC }}/backend:${{ github.sha }} ./backend
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/todo-backend:${{ github.sha }} ./backend
 
       - name: Run Trivy vulnerability scan on backend image
-        uses: aquasecurity/trivy-action@c03d123cb480c08c69b054af418ea5e69fe6e57e # master
+        uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ghcr.io/${{ env.REPO_LC }}/backend:${{ github.sha }}
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/todo-backend:${{ github.sha }}
           format: 'table'
           exit-code: '1'
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
-          ignore-unfixed: true
 
-      - name: Push backend image to GHCR
+      - name: Push backend image to Docker Hub
         run: |
-          docker push ghcr.io/${{ env.REPO_LC }}/backend:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-backend:${{ github.sha }}
 
   build-frontend:
     needs: test-backend
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@v4
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set lowercase repository name
-        run: |
-          echo "REPO_LC=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build frontend Docker image
         run: |
-          docker build -t ghcr.io/${{ env.REPO_LC }}/frontend:${{ github.sha }} ./frontend
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/todo-frontend:${{ github.sha }} ./frontend
 
       - name: Run Trivy vulnerability scan on frontend image
-        uses: aquasecurity/trivy-action@c03d123cb480c08c69b054af418ea5e69fe6e57e # master
+        uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ghcr.io/${{ env.REPO_LC }}/frontend:${{ github.sha }}
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/todo-frontend:${{ github.sha }}
           format: 'table'
           exit-code: '1'
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
 
-      - name: Push frontend image to GHCR
+      - name: Push frontend image to Docker Hub
         run: |
-          docker push ghcr.io/${{ env.REPO_LC }}/frontend:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-frontend:${{ github.sha }}

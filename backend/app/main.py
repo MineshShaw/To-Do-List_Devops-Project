@@ -56,6 +56,14 @@ def read_tasks(db: Session = Depends(get_db)):
     return tasks
 
 
+@app.get("/tasks/{task_id}", response_model=schemas.TaskResponse, dependencies=[Depends(require_api_key)])
+def read_task(task_id: int, db: Session = Depends(get_db)):
+    db_task = crud.get_task(db, task_id)
+    if db_task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return db_task
+
+
 @app.post("/tasks", response_model=schemas.TaskResponse, dependencies=[Depends(require_api_key)])
 def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
     return crud.create_task(db, task)
