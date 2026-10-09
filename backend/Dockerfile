@@ -9,7 +9,9 @@ RUN apk upgrade --no-cache && \
 
 # Install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip uninstall --yes pip setuptools wheel && \
+    rm -rf /usr/local/lib/python3.11/ensurepip/_bundled
 
 # Remove build dependencies
 RUN apk del .build-deps
