@@ -1,28 +1,27 @@
-FROM python:3.11-slim
+FROM python:3.11-alpine
 
 WORKDIR /app
 
-RUN adduser --disabled-password --gecos '' --uid 1001 appuser
+# Install system dependencies needed for psycopg2-binary and build
+RUN apk add --no-cache --virtual .build-deps gcc musl-dev postgresql-dev && \
+    apk add --no-cache libpq
 
+# Install dependencies
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 1. Upgrade core tools
-# 2. Install requirements
-# 3. Purge the ensurepip bundled wheels to stop Trivy from scanning inert files
-RUN pip install --no-cache-dir --upgrade \
-    "pip>=26.2.1" \
-    "setuptools>=78.1.1" \
-    "wheel>=0.48.0" \
-    "jaraco.context>=6.1.2" && \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir --upgrade \
-    "msgpack>=1.2.1" \
-    "urllib3>=2.8.0" && \
-    pip uninstall --yes pip setuptools wheel && \
-    rm -rf /usr/local/lib/python3.11/ensurepip/_bundled/
+# Remove build dependencies
+RUN apk del .build-deps
 
-COPY --chown=appuser:appuser . .
+# Copy backend source code
+COPY . .
 
+# Create dedicated non-root user
+RUN adduser --disabled-password --gecos '' --uid 1001 appuser && \
+    chown -R appuser:appuser /app
+
+# Switch to non-root user
 USER appuser
 
+# Run Uvicorn
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

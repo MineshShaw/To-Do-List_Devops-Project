@@ -28,7 +28,7 @@ jobs:
           cd backend
           PYTHONPATH=$PWD DATABASE_URL=sqlite:///:memory: python -m pytest -v
 
-  build-backend:
+  build-scan-backend:
     needs: test-backend
     runs-on: ubuntu-latest
 
@@ -36,30 +36,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Build backend Docker image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/todo-backend:${{ github.sha }} ./backend
+          docker build -t todo-backend:${{ github.sha }} ./backend
 
       - name: Run Trivy vulnerability scan on backend image
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/todo-backend:${{ github.sha }}
+          image-ref: todo-backend:${{ github.sha }}
           format: 'table'
           exit-code: '1'
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
 
-      - name: Push backend image to Docker Hub
+      - name: Save backend image to tarball
         run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-backend:${{ github.sha }}
+          docker save todo-backend:${{ github.sha }} -o backend-${{ github.sha }}.tar
 
-  build-frontend:
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-image-${{ github.sha }}
+          path: backend-${{ github.sha }}.tar
+
+  build-scan-frontend:
     needs: test-backend
     runs-on: ubuntu-latest
 
@@ -67,25 +67,75 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Build frontend Docker image
+        run: |
+          docker build -t todo-frontend:${{ github.sha }} ./frontend
+
+      - name: Run Trivy vulnerability scan on frontend image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: todo-frontend:${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
+
+      - name: Save frontend image to tarball
+        run: |
+          docker save todo-frontend:${{ github.sha }} -o frontend-${{ github.sha }}.tar
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-image-${{ github.sha }}
+          path: frontend-${{ github.sha }}.tar
+
+  push-backend:
+    needs: build-scan-backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-image-${{ github.sha }}
+
+      - name: Load backend image
+        run: |
+          docker load -i backend-${{ github.sha }}.tar
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build frontend Docker image
+      - name: Tag and push backend image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/todo-frontend:${{ github.sha }} ./frontend
+          docker tag todo-backend:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/todo-backend:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-backend:${{ github.sha }}
 
-      - name: Run Trivy vulnerability scan on frontend image
-        uses: aquasecurity/trivy-action@master
+  push-frontend:
+    needs: build-scan-frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
         with:
-          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/todo-frontend:${{ github.sha }}
-          format: 'table'
-          exit-code: '1'
-          vuln-type: 'os,library'
-          severity: 'HIGH,CRITICAL'
+          name: frontend-image-${{ github.sha }}
 
-      - name: Push frontend image to Docker Hub
+      - name: Load frontend image
         run: |
+          docker load -i frontend-${{ github.sha }}.tar
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Tag and push frontend image
+        run: |
+          docker tag todo-frontend:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/todo-frontend:${{ github.sha }}
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/todo-frontend:${{ github.sha }}
