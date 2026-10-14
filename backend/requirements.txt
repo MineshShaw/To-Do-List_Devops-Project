@@ -8,3 +8,7 @@ httpx==0.28.1
 psycopg[binary]==3.3.6
 prometheus-fastapi-instrumentator
 pytest-cov
+# --- Authentication (JWT + password hashing) ---
+python-jose[cryptography]==3.5.0
+bcrypt==5.0.0
+python-multipart==0.0.32

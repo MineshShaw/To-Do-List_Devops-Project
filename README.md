@@ -42,6 +42,53 @@ there directly. Tasks are written to the PostgreSQL `postgres_data` volume.
 
 The frontend can be accessed at `http://localhost:3000`, and the backend API is available at `http://localhost:8000`.
 
+## API & Authentication
+
+The API uses JWT bearer authentication. Sign up once, then send the returned
+token on every task request:
+
+```bash
+# 1. Create an account -> returns a JWT (201)
+curl -X POST http://localhost:8000/signup \
+     -H "Content-Type: application/json" \
+     -d '{"username": "alice", "password": "secret123"}'
+
+# 2. Or log in with the OAuth2 password flow -> returns a JWT
+curl -X POST http://localhost:8000/login \
+     -d "username=alice&password=secret123"
+
+# 3. Call a protected endpoint with the token
+curl http://localhost:8000/tasks \
+     -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/health` | No | Liveness probe |
+| `POST` | `/signup` | No | Register a user, returns a JWT |
+| `POST` | `/login` | No | OAuth2 password flow, returns a JWT |
+| `GET` | `/tasks?status=pending` | Yes | List **your** tasks, optional status filter (`pending`, `in-progress`, `done`) |
+| `POST` | `/tasks` | Yes | Create a task owned by you |
+| `GET` | `/tasks/{id}` | Yes | Fetch one of your tasks |
+| `PUT` | `/tasks/{id}` | Yes | Update one of your tasks |
+| `DELETE` | `/tasks/{id}` | Yes | Delete one of your tasks |
+
+Tasks are scoped to their owner: any access to another user's task returns
+`404 Not Found`. Invalid status values return `422 Unprocessable Entity`, and
+missing/invalid tokens return `401 Unauthorized`.
+
+### Database migrations
+
+The schema is managed with Alembic. After changing the models, generate and
+apply a migration:
+
+```bash
+cd backend
+export DATABASE_URL="postgresql+psycopg2://postgres:postgres@localhost:5432/todo_db"
+alembic revision --autogenerate -m "add users and task status/due_date/owner"
+alembic upgrade head
+```
+
 ## CI/CD Pipeline
 
 The GitHub Actions workflow (`.github/workflows/ci-cd.yml`) automates the entire build and deployment pipeline:
