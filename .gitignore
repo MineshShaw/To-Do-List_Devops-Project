@@ -1,5 +1,7 @@
 .env
-__pycache__
+**/__pycache__/
+*.pyc
+**/.pytest_cache/
 node_modules
 .venv
 
@@ -9,3 +11,8 @@ node_modules
 *.tfstate.backup
 *.tfvars
 !*.tfvars.example
+
+# Python caches / virtualenvs
+__pycache__/
+.pytest_cache/
+.venv/
