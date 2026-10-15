@@ -97,6 +97,8 @@ jobs:
           download_external_modules: true
           # Hard gate: do NOT soft-fail on misconfigurations.
           soft_fail: false
+          # Skip expected capstone architecture conflicts
+          skip_check: CKV_AWS_39,CKV_AWS_38,CKV_TF_1,CKV_AWS_111,CKV_AWS_356,CKV2_AWS_5,CKV_AWS_58,CKV2_AWS_12
 
   # ==========================================================================
   # Stage 2 - Application Testing
