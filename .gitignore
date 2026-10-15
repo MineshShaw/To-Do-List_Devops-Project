@@ -19,3 +19,6 @@ __pycache__/
 .coverage
 .coverage.*
 htmlcov/
+
+/build_and_deploy.sh
+/destroy_all.sh

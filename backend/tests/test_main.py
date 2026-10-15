@@ -311,6 +311,54 @@ def test_filter_invalid_status_returns_422(client: TestClient, make_auth_headers
 
 
 # --------------------------------------------------------------------------- #
+# CORS
+# --------------------------------------------------------------------------- #
+def _preflight(client, origin):
+    return client.options(
+        "/tasks",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "authorization,content-type",
+        },
+    )
+
+
+def test_cors_preflight_allows_localhost(client: TestClient):
+    response = _preflight(client, "http://localhost:3000")
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+    assert "authorization" in response.headers["access-control-allow-headers"].lower()
+
+
+def test_cors_preflight_allows_loopback_ip(client: TestClient):
+    response = _preflight(client, "http://127.0.0.1:3000")
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:3000"
+
+
+def test_cors_preflight_allows_localhost_any_port(client: TestClient):
+    response = _preflight(client, "http://localhost:5173")
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+def test_cors_preflight_rejects_unknown_origin(client: TestClient):
+    response = _preflight(client, "http://evil.example.com")
+    assert "access-control-allow-origin" not in response.headers
+
+
+def test_cors_header_present_on_actual_request(client: TestClient):
+    response = client.get(
+        "/tasks",
+        headers={"Origin": "http://localhost:3000", "Authorization": "Bearer x"},
+    )
+    # Still unauthorised, but the CORS header must be present for the browser.
+    assert response.status_code == 401
+    assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+
+
+# --------------------------------------------------------------------------- #
 # Validation
 # --------------------------------------------------------------------------- #
 def test_create_task_invalid_status_returns_422(client: TestClient, make_auth_headers):

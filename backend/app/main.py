@@ -28,11 +28,28 @@ _BCRYPT_MAX_BYTES = 72
 
 app = FastAPI(title="To-Do API", version="2.0.0")
 
+def _cors_origins() -> List[str]:
+    """Parse the comma-separated CORS_ORIGINS env var.
+
+    Falls back to sensible local-development origins when it is unset, and
+    trims whitespace so values like "http://a, http://b" both match.
+    """
+    raw = os.environ.get("CORS_ORIGINS", "")
+    origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
+    if not origins:
+        origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    return origins
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(","),
+    allow_origins=_cors_origins(),
+    # Local dev is often served from localhost/127.0.0.1 on an arbitrary port
+    # (e.g. :3000, :5173). Allowing those keeps CORS working without having to
+    # hard-code every port; production origins are still driven by CORS_ORIGINS.
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
