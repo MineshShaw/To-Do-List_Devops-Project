@@ -9,6 +9,8 @@ node_modules
 .terraform/
 *.tfstate
 *.tfstate.backup
+*.tfstate.lock.info
+.terraform.tfstate.lock.info
 *.tfvars
 !*.tfvars.example
 
