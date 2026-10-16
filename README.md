@@ -54,7 +54,7 @@ stays on the delivery pipeline, infrastructure, and operational practices around
    │                                                  └─────────────┘             │
    │                                                                              │
    │   ┌──────────────────────────────────────────────────────────────────────┐   │
-   │   │ kube-prometheus-stack: Prometheus (scrape) + Grafana (dashboards)    │   │
+   │   │ monitoring ns: Prometheus (scrape) + Grafana (dashboards)            │   │
    │   └──────────────────────────────────────────────────────────────────────┘   │
    └──────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -75,7 +75,7 @@ stays on the delivery pipeline, infrastructure, and operational practices around
 | **Infrastructure** | Terraform, `terraform-aws-modules/eks/aws` v20, AWS VPC data sources |
 | **Cloud** | AWS EKS — region `ap-southeast-2` (Sydney), Kubernetes `1.31` |
 | **Orchestration** | Kubernetes, Helm |
-| **Observability** | `kube-prometheus-stack` (Prometheus + Grafana), `/metrics` endpoint |
+| **Observability** | Prometheus (`prometheus-community`) + Grafana (`grafana`) Helm charts, `/metrics` endpoint |
 | **Testing** | Pytest, HTTPX TestClient, coverage |
 
 ---
@@ -315,24 +315,50 @@ kubectl get svc  -n todo-app
 
 ## Observability
 
-The cluster runs **`kube-prometheus-stack`**, which bundles **Prometheus** and **Grafana** with the
-standard Kubernetes exporters, ServiceMonitors, and ready-made dashboards.
+Monitoring runs in the `monitoring` namespace as **two Helm releases** — Prometheus
+(`prometheus-community/prometheus`) and Grafana (`grafana/grafana`) — configured by the values
+files in [`monitoring/`](monitoring/).
 
-- The backend is instrumented with `prometheus-fastapi-instrumentator`, exposing `/metrics`.
-- Prometheus scrapes the backend service `/metrics` endpoint on a short interval.
-- Grafana is provisioned with Prometheus as its default datasource for dashboards and panels.
+**Prometheus** — [`monitoring/prometheus-values.yaml`](monitoring/prometheus-values.yaml):
+
+- 15s global scrape interval; persistent volumes disabled (ephemeral, lab-friendly).
+- Scrapes itself **and the backend**, the latter on a shorter 10s interval:
+
+  ```yaml
+  - job_name: 'todo-backend'
+    static_configs:
+      - targets: ['todo-app-backend-service:80']
+    metrics_path: /metrics
+    scrape_interval: 10s
+  ```
+
+- `nodeExporter` and `kubeStateMetrics` enabled; `alertmanager` and `pushgateway` disabled.
+
+**Grafana** — [`monitoring/grafana-values.yaml`](monitoring/grafana-values.yaml):
+
+- Prometheus provisioned as the default datasource (`http://prometheus-server`).
+- ClusterIP service on port 80; persistence disabled (default credentials `admin` / `admin`).
+
+The backend exposes its metrics via `prometheus-fastapi-instrumentator` at `/metrics`.
 
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
-helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
-  --namespace monitoring --create-namespace
+
+helm upgrade --install prometheus prometheus-community/prometheus \
+  --namespace monitoring --create-namespace \
+  --values monitoring/prometheus-values.yaml
+
+helm upgrade --install grafana grafana/grafana \
+  --namespace monitoring --create-namespace \
+  --values monitoring/grafana-values.yaml
 ```
 
-Access Grafana locally:
+Access Grafana locally (then log in with `admin` / `admin`):
 
 ```bash
-kubectl port-forward -n monitoring svc/monitoring-grafana 3000:80
+kubectl port-forward -n monitoring svc/grafana 3000:80
 ```
 
 ---
@@ -356,6 +382,7 @@ docker compose down -v
 
 # Helm release
 helm uninstall todo-app --namespace todo-app
+helm uninstall prometheus grafana --namespace monitoring
 
 # AWS infrastructure
 cd terraform
