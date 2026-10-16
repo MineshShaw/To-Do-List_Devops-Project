@@ -5,7 +5,7 @@ module "vpc" {
   name = "${var.cluster_name}-vpc"
   cidr = var.vpc_cidr
 
-  manage_default_security_group = true
+  manage_default_security_group  = true
   default_security_group_ingress = []
   default_security_group_egress  = []
 
