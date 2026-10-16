@@ -12,10 +12,12 @@ module "eks" {
   create_kms_key            = false
   cluster_encryption_config = {}
 
-  vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.public_subnets
+  # Reference the default VPC data sources instead of the module
+  vpc_id     = data.aws_vpc.default.id
+  subnet_ids = data.aws_subnets.default.ids
 
   cluster_endpoint_public_access = true
+  
   eks_managed_node_groups = {
     one = {
       name           = "${var.cluster_name}-ng"
